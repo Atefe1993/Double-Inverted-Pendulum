@@ -1,0 +1,90 @@
+clc
+clear all
+close all
+
+global m1 m2 g l1 l2 J2 J1P e3_I IC
+Constants
+
+%---------------- Time span ------------------
+
+t0 = 0;
+tf = 10; %[sec]
+
+%---------------- Continuous modeling ------------------
+
+options = odeset('RelTol', 1e-6, 'AbsTol', 1e-6);
+[T, X]  = ode45(@diff_eqns, [t0, tf], IC, options);
+
+%--------------- Discrete modeling ---------------------
+
+h = 1e-4; % Least accuracy needed compared with the continuous modeling results
+t = t0: h: tf; 
+N = (tf - t0) / h; 
+R1_d(:, :, 1) = [IC(1:3)' ;
+                 IC(4:6)' ;
+                 IC(7:9)'];
+                
+R2_d(:, :, 1) = [IC(10:12)' ;
+                 IC(13:15)' ;
+                 IC(16:18)'];
+                
+omega1_d(:, :, 1) = IC(19:21);
+omega2_d(:, :, 1) = IC(22:24);
+
+for k = 1 : N
+    
+    F1(:, :, k) = eye(3, 3) + h * cross_matrix(omega1_d(:, :, k));
+    F2(:, :, k) = eye(3, 3) + h * cross_matrix(omega2_d(:, :, k));
+
+    R1_d(:, :, k+1) = R1_d(:, :, k) * F1(:, :, k);
+    R2_d(:, :, k+1) = R2_d(:, :, k) * F2(:, :, k);
+    
+    A(:, :, k) = -(m1 + m2) * h * g * l1 * e3_I' * cross_matrix(R1_d(:, :, k+1)' * e3_I) + omega1_d(:, :, k)' * J1P * F1(:, :, k) + m2 * (l1 ^ 2) * e3_I' * cross_matrix(omega1_d(:, :, k)) * F1(:, :, k) * cross_matrix(e3_I) + m2 * l1 * l2 * e3_I' * cross_matrix(omega2_d(:, :, k)) * R2_d(:, :, k)' * R1_d(:, :, k) * F1(:, :, k) * cross_matrix(e3_I);
+    B(:, :, k) = -m2 * h * g * l2 * e3_I' * cross_matrix(R2_d(:, :, k+1)' * e3_I) + m2 * (l1 ^ 2) * e3_I' * cross_matrix(omega2_d(:, :, k)) * F2(:, :, k) * cross_matrix(e3_I) + m2 * l1 * l2 * e3_I' * cross_matrix(omega1_d(:, :, k)) * R1_d(:, :, k)' * R2_d(:, :, k) * F2(:, :, k) * cross_matrix(e3_I) + omega2_d(:, :, k)' * J2 * F2(:, :, k);
+    C(:, :, k) = [-J1P + m2 * (l1 ^ 2) * (cross_matrix(e3_I)) ^ 2, m2 * l1 * l2 * cross_matrix(e3_I) * R1_d(:, :, k+1)' * R2_d(:, :, k+1) * cross_matrix(e3_I);
+                   m2 * l1 * l2 * cross_matrix(e3_I) * R2_d(:, :, k+1)' * R1_d(:, :, k+1) * cross_matrix(e3_I), -J2 + m2 * (l2 ^ 2) * (cross_matrix(e3_I)) ^ 2];
+    D(:, :, k) = [-A(:, :, k) -B(:, :, k)] * inv(C(:, :, k));
+    omega1_d(:, :, k+1) = D(:, 1:3, k);
+    omega2_d(:, :, k+1) = D(:, 4:6, k);
+end
+
+% --------------- Results --------------
+
+figure()
+title('Single Inverted Pendulum Model: Continuous vs Dicrete')
+subplot(2, 2, 1)
+plot(T, X(:,19),'b')
+hold on
+grid on
+plot(T, X(:,20),'r')
+plot(T, X(:,21),'g')
+xlabel('time [s]')
+ylabel('\Omega [rad/sec]')
+legend('\Omega_1', '\Omega_2','\Omega_3')
+
+subplot(2, 2, 2)
+plot(T, X(:,22),'b')
+hold on
+grid on
+plot(T, X(:,23),'r')
+plot(T, X(:,24),'g')
+xlabel('time [s]')
+ylabel('\Omega [rad/sec]')
+
+subplot(2, 2, 3)
+plot(t(1:length(omega1_d)), omega1_d(1,:),'b')
+hold on
+grid on
+plot(t(1:length(omega1_d)), omega1_d(2,:),'r')
+plot(t(1:length(omega1_d)), omega1_d(3,:),'g')
+xlabel('time [s]')
+ylabel('\Omega [rad/sec]')
+
+subplot(2, 2, 4)
+plot(t(1:length(omega2_d)), omega2_d(1,:),'b')
+hold on
+grid on
+plot(t(1:length(omega2_d)), omega2_d(2,:),'r')
+plot(t(1:length(omega2_d)), omega2_d(3,:),'g')
+xlabel('time [s]')
+ylabel('\Omega [rad/sec]')
