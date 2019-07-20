@@ -1,0 +1,19 @@
+function [] = Constants()
+
+global m1 m2 l1 l2 g e3_I J1 J2 J1P J1dP J2P IC
+
+m1   = .1;                                                         % Mass [kg]
+m2   = .1;                                                         % Mass [kg]
+l1   = 1;                                                          % Length [m]
+l2   = 1;                                                          % Length [m]
+r1    = 0.1;                                                       % Radius of the sphere [m]
+r2    = 0.1;                                                       % Radius of the sphere [m]
+g    = 9.81;                                                       % Earth's standard gravity [kg/m^2]
+e3_I = [0; 0; 1];                                                  % Third unit vector of the inertial reference frame
+R_0  = eye(3, 3);                                                  % Initial condition for the rotation matrix from Body frame to Inertial frame
+IC   = [R_0(1, 1:3)'; R_0(2, 1:3)'; R_0(3, 1:3)'; R_0(1, 1:3)'; R_0(2, 1:3)'; R_0(3, 1:3)'; -0.01; 0.01; 0.1; 0.01; -0.01; 0.01]; % Initial conditions of the problem: IC(1:9) : R(0) , IC(10:12) : omega(0) [rad/sec]
+J1   = ((2 / 5 ) * m1 * r1 ^ 2) * eye(3, 3);                       % Moment of inertia of the first sphere [kg*m^2]
+J1P  = J1 - m1 * (l1 ^ 2) * ((cross_matrix(e3_I)) ^ 2);            % Moment of inertia used to calculate the kinetic energy [kg*m^2]
+J1dP = J1P - m2 * (l1 ^ 2) * ((cross_matrix(e3_I)) ^ 2);           % Moment of inertia used to calculate the kinetic energy [kg*m^2]
+J2   = ((2 / 5 ) * m2 * r2 ^ 2) * eye(3, 3);                       % Moment of inertia of the second sphere [kg*m^2]
+J2P  = J2 - m2 * (l2 ^ 2) * ((cross_matrix(e3_I)) ^ 2);            % Moment of inertia used to calculate the kinetic energy [kg*m^2]
